@@ -6,4 +6,5 @@ urlpatterns = [
     url(r'create/', views.create_resource),
     url(r'update/', views.update_resource),
     url(r'delete/', views.delete_resource),
+    url(r'scan/', views.scan),
 ]

@@ -1,18 +1,15 @@
-from rsc.common.salt_https_api import salt_api_token
-
-SALT_REST_URL = 'http://10.100.11.208:8001/'
-SALT_USER = 'sa'
-SALT_PASSWORD = 'sapassword'
+from django.conf import settings
+from common.salt_https_api import salt_api_token
 
 
 def token_id():
     s = salt_api_token(
         {
-            "username": SALT_USER,
-            "password": SALT_PASSWORD,
+            "username": settings.SALT_USER,
+            "password": settings.SALT_PASSWORD,
             "eauth": "pam"
         },
-        SALT_REST_URL + "login",
+        settings.SALT_REST_URL + "login",
         {}
     )
     test = s.run()

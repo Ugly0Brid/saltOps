@@ -3,11 +3,14 @@ from django.contrib.auth.models import User, Group
 from django.http import JsonResponse
 from rest_framework import viewsets
 from django.db import transaction
+from django.conf import settings
 import json
 
-from .models import DataCenter, Cabinet, Frame, Scope, PmServer, Group
+from .models import DataCenter, Cabinet, Frame, Scope, PmServer, VmServer, ServerIp, Group
 from .common import RESOURCE_NAME, _pagination_filter_order
 from .serializers import UserSerializer, GroupSerializer
+from common.salt_https_api import salt_api_token
+from common.salt_token_id import token_id
 from .common import _select_params
 
 
@@ -152,3 +155,52 @@ def delete_resource(request):
     except Exception as e:
         print(str(e))
         return JsonResponse({"status": -1, "error": "删除资源失败."})
+
+
+def scan(request):
+    try:
+        minions_status = salt_api_token({"fun": "manage.status"}, settings.SALT_REST_URL, {"X-Auth-Token": token_id()}).runnerRun()
+        minion_up = minions_status["return"][0]["up"]
+        minions = salt_api_token({'fun': 'grains.items', 'tgt': '*'}, settings.SALT_REST_URL, {'X-Auth-Token': token_id()}).CmdRun()['return'][0]
+        server_info = []
+        for host in minions:
+            if not host in minion_up:
+                continue
+
+            tmp_dict = {
+                "name": minions[host]["host"],
+                "os": minions[host]["os"],
+                "memory": minions[host]["mem_total"],
+                "cpu": minions[host]["num_cpus"],
+                "minion_name": minions[host]["id"],
+            }
+            obj = None
+            if "virtual" in minions[host]:
+                if not VmServer.objects.filter(name=tmp_dict["name"]).first():
+                    obj = VmServer.objects.create(**tmp_dict)
+            else:
+                if not PmServer.objects.filter(name=tmp_dict["name"]).first():
+                    obj = PmServer.objects.create(**tmp_dict)
+            ips = []
+            for k, v in minions[host]["ip4_interfaces"].items():
+                if k != "lo" and v:
+                    ip_dict = {
+                        "ip": v[0],
+                        "mac": minions[host]["hwaddr_interfaces"][k],
+                        "server": obj
+                    }
+                    ServerIp.objects.create(**ip_dict)
+                    ips.append({"ip": v[0], "mac": minions[host]["hwaddr_interfaces"][k]})
+            server_info.append(
+                {
+                    "hostname": minions[host]["host"],
+                    "ip": ips,
+                    "cpu_num": minions[host]["num_cpus"],
+                    "mem_total": minions[host]["mem_total"],
+                    "os": minions[host]["os"],
+                    "minion_name": minions[host]["id"]
+                })
+        return JsonResponse({"status": 0})
+    except Exception as e:
+        print(str(e))
+        return JsonResponse({"status": -1})

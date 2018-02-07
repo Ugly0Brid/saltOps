@@ -33,7 +33,7 @@ def _pagination_filter_order(queryset, name, page, size, filter_dict, search_dic
         q_list = [Q(**{'%s__icontains' % (prop): keyword}) for prop in props]
         queryset = queryset.filter(reduce(lambda x, y: x | y, q_list))
     queryset = queryset.order_by(order)
-    queryset = queryset[(page - 1) * size:size]
+    queryset = queryset[(page - 1) * size:page * size]
     return queryset
 
 

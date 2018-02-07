@@ -122,3 +122,7 @@ STATICFILES_DIRS = (
 )
 
 # 配置rest framework
+# salt配置
+SALT_REST_URL = 'http://10.100.11.208:8001/'
+SALT_USER = 'sa'
+SALT_PASSWORD = 'sapassword'

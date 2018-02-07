@@ -130,7 +130,7 @@ class Server(BaseModel):
     )
     name = models.CharField(max_length=255, verbose_name="名称")
     minion_name = models.CharField(max_length=255, verbose_name="Minion名称")
-    minion_status = models.IntegerField(verbose_name="Minion状态", default=0, choices=MINION_STATUS)
+    minion_status = models.IntegerField(verbose_name="Minion状态", default=1, choices=MINION_STATUS)
     os = models.CharField(max_length=255, verbose_name="OS")
     cpu = models.CharField(max_length=255, verbose_name="CPU")
     memory = models.CharField(max_length=255, verbose_name="内存")
@@ -186,6 +186,8 @@ class PmServer(Server):
             "id": self.id,
             "key": self.id,
             "name": self.name,
+            "ip": ",".join([item.ip for item in self.ip_server.all()]),
+            "mac": ",".join([item.mac for item in self.ip_server.all()]),
             "minion_name": self.minion_name,
             "minion_status": Server.MINION_STATUS[self.minion_status][1],
             "minion_status_id": self.minion_status,
@@ -216,6 +218,8 @@ class VmServer(Server):
             "id": self.id,
             "key": self.id,
             "name": self.name,
+            "ip": ",".join([item.ip for item in self.ip_server.all()]),
+            "mac": ",".join([item.mac for item in self.ip_server.all()]),
             "minion_name": self.minion_name,
             "minion_status": Server.MINION_STATUS[self.minion_status][1],
             "minion_status_id": self.minion_status,
