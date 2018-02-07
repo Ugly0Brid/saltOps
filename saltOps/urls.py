@@ -17,6 +17,7 @@ from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
 from resource_m import views
+from common.views import login, logout
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
@@ -24,6 +25,8 @@ router.register(r'groups', views.GroupViewSet)
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^', include(router.urls)),
-    url(r'^resource/', include('resource_m.urls', namespace='resource')),
+    url(r'^api/login/', login),
+    url(r'^api/logout/', logout),
+    url(r'^api/resource/', include('resource_m.urls', namespace='resource')),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]

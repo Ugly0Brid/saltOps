@@ -1,12 +1,14 @@
 from django.db import models
 
+from django.utils import timezone
+
 
 # Create your models here.
 class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-    create_time = models.DateTimeField(auto_now=True, verbose_name="创建时间")
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
     update_time = models.DateTimeField(auto_now=True, verbose_name="修改时间")
     remarks = models.TextField(verbose_name="备注", blank=True, null=True)
 
@@ -29,14 +31,17 @@ class DataCenter(BaseModel):
     def _to_dict(self):
         return {
             "id": self.id,
+            "key": self.id,
             "name": self.name,
             "band_width": self.band_width,
-            "type": self.data_center_type,
+            "type": DataCenter.DATA_CENTER_TYPE[self.data_center_type][1],
+            "type_id": self.data_center_type,
             "address": self.address,
             "link_name": self.link_name,
             "contact_phone": self.contact_phone,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "cabinet_count": self.cabinet_datacenter.count(),
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "remarks": self.remarks
         }
 
@@ -49,16 +54,18 @@ class Cabinet(BaseModel):
         verbose_name = "机柜"
 
     name = models.CharField(max_length=255, verbose_name="名称")
-    data_center = models.ForeignKey(DataCenter, verbose_name="关联机房", related_name="cabinet_datacenter", blank=True,
-                                    null=True)
+    data_center = models.ForeignKey(DataCenter, verbose_name="关联机房", related_name="cabinet_datacenter", blank=True, null=True)
 
     def _to_dict(self):
         return {
             "id": self.id,
+            "key": self.id,
             "name": self.name,
-            "data_center": self.data_center.name,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "frame_count": self.frame_cabinet.count(),
+            "data_center": self.data_center.name if self.data_center else '',
+            "data_center_id": self.data_center.id if self.data_center else '',
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "remarks": self.remarks
         }
 
@@ -71,15 +78,18 @@ class Frame(BaseModel):
         verbose_name = "机架"
 
     name = models.CharField(max_length=255, verbose_name="名称")
-    cabinet = models.ForeignKey(Cabinet, verbose_name="关联机柜", auto_created="frame_cabinet", blank=True, null=True)
+    cabinet = models.ForeignKey(Cabinet, verbose_name="关联机柜", related_name="frame_cabinet", blank=True, null=True)
 
     def _to_dict(self):
         return {
             "id": self.id,
+            "key": self.id,
             "name": self.name,
-            "cabinet": self.cabinet.name,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "cabinet": self.cabinet.name if self.cabinet else '',
+            "cabinet_id": self.cabinet.id if self.cabinet else '',
+            "server_count": self.server_frame.count(),
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "remarks": self.remarks
         }
 
@@ -97,10 +107,12 @@ class Scope(BaseModel):
     def _to_dict(self):
         return {
             "id": self.id,
+            "key": self.id,
             "name": self.name,
             "label": self.label,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "server_count": self.server_scope.count(),
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "remarks": self.remarks
         }
 
@@ -113,7 +125,7 @@ class Server(BaseModel):
         verbose_name = "服务器"
 
     MINION_STATUS = (
-        (0, "关闭"),
+        (0, "未启动"),
         (1, "开启")
     )
     name = models.CharField(max_length=255, verbose_name="名称")
@@ -124,20 +136,26 @@ class Server(BaseModel):
     memory = models.CharField(max_length=255, verbose_name="内存")
     frame = models.ForeignKey(Frame, verbose_name="关联机架", related_name="server_frame", blank=True, null=True)
     scope = models.ManyToManyField(Scope, verbose_name="关联领域", related_name="server_scope", blank=True, null=True)
+    class_name = models.CharField(verbose_name="类名", max_length=50)
+
+    def save(self, *args, **kwargs):
+        self.class_name = self.__class__.__name__
+        super(Server, self).save(*args, **kwargs)
 
     def _to_dict(self):
         return {
             "id": self.id,
+            "key": self.id,
             "name": self.name,
             "minion_name": self.minion_name,
             "minion_status": self.minion_status,
             "os": self.os,
             "cpu": self.cpu,
             "memory": self.memory,
-            "frame": self.frame.name,
+            "frame": self.frame.name if self.frame else '',
             "scope": ",".join([item.name for item in self.scope.all()]),
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "remarks": self.remarks
         }
 
@@ -166,15 +184,20 @@ class PmServer(Server):
     def _to_dict(self):
         return {
             "id": self.id,
+            "key": self.id,
             "name": self.name,
             "minion_name": self.minion_name,
-            "minion_status": self.minion_status,
+            "minion_status": Server.MINION_STATUS[self.minion_status][1],
+            "minion_status_id": self.minion_status,
             "os": self.os,
             "cpu": self.cpu,
             "memory": self.memory,
+            "frame": self.frame.name if self.frame else '',
+            "frame_id": self.frame.id if self.frame else '',
             "scope": ",".join([item.name for item in self.scope.all()]),
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "scope_id": [item.id for item in self.scope.all()],
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "remarks": self.remarks
         }
 
@@ -191,16 +214,22 @@ class VmServer(Server):
     def _to_dict(self):
         return {
             "id": self.id,
+            "key": self.id,
             "name": self.name,
             "minion_name": self.minion_name,
-            "minion_status": self.minion_status,
+            "minion_status": Server.MINION_STATUS[self.minion_status][1],
+            "minion_status_id": self.minion_status,
             "os": self.os,
             "cpu": self.cpu,
             "memory": self.memory,
-            "pm_server": self.pm_server.name,
+            "pm_server": self.pm_server.name if self.pm_server else '',
+            "pm_server_id": self.pm_server.id if self.pm_server else '',
+            "frame": self.frame.name if self.frame else '',
+            "frame_id": self.frame.id if self.frame else '',
             "scope": ",".join([item.name for item in self.scope.all()]),
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "scope_id": [item.id for item in self.scope.all()],
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "remarks": self.remarks
         }
 
@@ -218,10 +247,11 @@ class Group(BaseModel):
     def _to_dict(self):
         return {
             "id": self.id,
+            "key": self.id,
             "name": self.name,
-            "lable": self.label,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
+            "label": self.label,
+            "create_time": self.create_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "update_time": self.update_time.strftime("%Y-%m-%d %H:%M:%S"),
             "remarks": self.remarks
         }
 

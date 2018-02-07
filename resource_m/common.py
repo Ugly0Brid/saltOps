@@ -35,3 +35,19 @@ def _pagination_filter_order(queryset, name, page, size, filter_dict, search_dic
     queryset = queryset.order_by(order)
     queryset = queryset[(page - 1) * size:size]
     return queryset
+
+
+def _select_params(name):
+    item_list = list()
+    if name == "datacenter":
+        item_list = [{"id": item[0], "name": item[1]} for item in DataCenter.DATA_CENTER_TYPE]
+    elif name == "cabinet":
+        item_list = [{"id": item["id"], "name": item["name"]} for item in DataCenter.objects.values("id", "name")]
+    elif name == "frame":
+        item_list = [{"id": item["id"], "name": item["name"]} for item in Cabinet.objects.values("id", "name")]
+    elif name in ["pmserver", "vmserver"]:
+        frame_list = [{"frame_id": item["id"], "frame_name": item["name"]} for item in Frame.objects.values("id", "name")]
+        scope_list = [{"scope_id": item["id"], "scope_name": item["name"]} for item in Scope.objects.values("id", "name")]
+        minion_list = [{"id": item[0], "name": item[1]} for item in Server.MINION_STATUS]
+        item_list = {"frame": frame_list, "scope": scope_list, "minion": minion_list}
+    return item_list
