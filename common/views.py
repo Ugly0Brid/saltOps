@@ -1,7 +1,12 @@
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from django.shortcuts import render
 import json
+
+
+def login_view(request):
+    return render(request, 'index.html')
 
 
 @csrf_exempt

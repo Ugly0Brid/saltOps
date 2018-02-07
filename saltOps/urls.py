@@ -17,14 +17,15 @@ from django.conf.urls import url, include
 from django.contrib import admin
 from rest_framework import routers
 from resource_m import views
-from common.views import login, logout
+from common.views import login, logout, login_view
 
 router = routers.DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^', include(router.urls)),
+    # url(r'^', include(router.urls)),
+    url(r'^$', login_view),
     url(r'^api/login/', login),
     url(r'^api/logout/', logout),
     url(r'^api/resource/', include('resource_m.urls', namespace='resource')),
